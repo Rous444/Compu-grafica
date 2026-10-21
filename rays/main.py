@@ -6,7 +6,7 @@ WIDTH, HEIGHT = 800, 600
 
 
 def main() -> None:
-    window = Window(WIDTH, HEIGHT, "Franco")
+    window = Window(WIDTH, HEIGHT, "Franco Castellani y Joaquin Martinez ")
     scene = build_scene(WIDTH / HEIGHT)
     renderer = RasterRenderer(window.gl_context)
     window.run(scene, renderer)
