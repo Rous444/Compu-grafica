@@ -15,12 +15,11 @@ class Window(pyglet.window.Window):
         self._renderer: Renderer | None = None
         self._overlay: Renderer | None = None
 
-        self.on_resize(self.width, self.height)
-
     def run(self, scene: Scene, renderer: Renderer, overlay: Renderer) -> None:
         self._scene = scene
         self._renderer = renderer
         self._overlay = overlay
+        self.on_resize(self.width, self.height)
         pyglet.clock.schedule_interval(self._update, 1.0 / UPDATES_PER_SECOND)
         pyglet.app.run()
 
@@ -38,6 +37,7 @@ class Window(pyglet.window.Window):
         framebuffer_width, framebuffer_height = self.get_framebuffer_size()
         self._scene.camera.resize(framebuffer_width, framebuffer_height)
         self._renderer.resize(framebuffer_width, framebuffer_height)
+
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
         if button != mouse.LEFT:
             return

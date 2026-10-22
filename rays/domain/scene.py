@@ -4,7 +4,7 @@ from pyglm import glm
 
 from domain.camera import Camera
 from domain.entity import Entity
-from domain.lighting import DirectionalLight
+from domain.lighting import DirectionalLight, SkyGradient
 from domain.intersections import Hit, closest_hit
 from domain.ray import Ray
 
@@ -15,6 +15,7 @@ class Scene:
     background_color: glm.vec3 = field(default_factory=lambda: glm.vec3(0.2, 0.2, 0.2))
     entities: list[Entity] = field(default_factory=list)
     light: DirectionalLight = field(default_factory=DirectionalLight)
+    sky: SkyGradient = field(default_factory=SkyGradient)
 
     def add(self, entity: Entity) -> Entity:
         if any(existing.name == entity.name for existing in self.entities):

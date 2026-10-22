@@ -11,12 +11,14 @@ EPSILON = 1e-4
 LOCAL_BOX_MIN = glm.vec3(-1.0)
 LOCAL_BOX_MAX = glm.vec3(1.0)
 
+
 @dataclass(frozen=True)
 class Hit:
-    """Resultado de una intersección: a qué distancia y en qué punto del mundo chocó el rayo."""
+    """Resultado de una intersección: distancia, punto del mundo y normal de la superficie."""
 
     distance: float
     point: glm.vec3
+    normal: glm.vec3
 
 
 def _safe_inverse(direction: glm.vec3) -> glm.vec3:
@@ -24,8 +26,9 @@ def _safe_inverse(direction: glm.vec3) -> glm.vec3:
     return glm.vec3(*(1.0 / c if abs(c) > 1e-12 else 1e12 for c in direction))
 
 
-def _slab(origin: glm.vec3, direction: glm.vec3, box_min: glm.vec3, box_max: glm.vec3) -> float | None:
-    """Método de slabs: distancia a la que el rayo entra en la caja, o None si no la toca."""
+def _slab(origin: glm.vec3, direction: glm.vec3,
+          box_min: glm.vec3, box_max: glm.vec3) -> tuple[float, glm.vec3] | None:
+    """Método de slabs: distancia de entrada y normal de la cara de entrada, o None si no toca la caja."""
     inverse_direction = _safe_inverse(direction)
     t_min = (box_min - origin) * inverse_direction
     t_max = (box_max - origin) * inverse_direction
@@ -35,7 +38,12 @@ def _slab(origin: glm.vec3, direction: glm.vec3, box_min: glm.vec3, box_max: glm
     t_far = min(t2.x, t2.y, t2.z)
     if t_near > t_far or t_near < EPSILON:
         return None
-    return t_near
+    # La cara por la que entra el rayo es la del eje que dio t_near. Su normal apunta
+    # en contra de la dirección del rayo en ese eje.
+    axis = [t1.x, t1.y, t1.z].index(t_near)
+    normal = glm.vec3(0.0)
+    normal[axis] = -1.0 if direction[axis] > 0.0 else 1.0
+    return t_near, normal
 
 
 def closest_hit(ray: Ray, entities: list[Entity]) -> tuple[Entity, Hit] | None:
@@ -47,28 +55,34 @@ def closest_hit(ray: Ray, entities: list[Entity]) -> tuple[Entity, Hit] | None:
             closest = (entity, hit)
     return closest
 
-def _local_ray(ray: Ray, entity: Entity) -> tuple[glm.vec3, glm.vec3]:
+def _local_ray(ray: Ray, inverse_model: glm.mat4) -> tuple[glm.vec3, glm.vec3]:
     """Lleva el rayo al espacio local de la entidad con la inversa de su matriz de modelo.
 
     La dirección local NO se normaliza: así, la distancia t vale lo mismo en el espacio local
     y en el mundo, y se puede comparar entre objetos.
     """
-    inverse_model = glm.inverse(entity.transform.model_matrix())
     local_origin = glm.vec3(inverse_model * glm.vec4(ray.origin, 1.0))
     local_direction = glm.vec3(inverse_model * glm.vec4(ray.direction, 0.0))
     return local_origin, local_direction
 
 def intersect_obb(ray: Ray, entity: Entity) -> Hit | None:
     """Caja orientada: en el espacio local, el cubo es una caja alineada de -1 a 1."""
-    local_origin, local_direction = _local_ray(ray, entity)
-    distance = _slab(local_origin, local_direction, LOCAL_BOX_MIN, LOCAL_BOX_MAX)
-    if distance is None:
+    inverse_model = glm.inverse(entity.transform.model_matrix())
+    local_origin, local_direction = _local_ray(ray, inverse_model)
+    result = _slab(local_origin, local_direction, LOCAL_BOX_MIN, LOCAL_BOX_MAX)
+    if result is None:
         return None
-    return Hit(distance, ray.point_at(distance))
+    distance, local_normal = result
+    return Hit(distance, ray.point_at(distance), _world_normal(inverse_model, local_normal))
+
+def _world_normal(inverse_model: glm.mat4, local_normal: glm.vec3) -> glm.vec3:
+    """Lleva una normal al mundo con la matriz de normales: la transpuesta de la inversa del modelo."""
+    return glm.normalize(glm.transpose(glm.mat3(inverse_model)) * local_normal)
 
 def intersect_rect(ray: Ray, entity: Entity) -> Hit | None:
     """Rayo contra el plano local y = 0, recortado al cuadrado |x| <= 1, |z| <= 1."""
-    local_origin, local_direction = _local_ray(ray, entity)
+    inverse_model = glm.inverse(entity.transform.model_matrix())
+    local_origin, local_direction = _local_ray(ray, inverse_model)
     if abs(local_direction.y) < 1e-9:
         return None  # El rayo es paralelo al plano.
     distance = -local_origin.y / local_direction.y
@@ -77,7 +91,8 @@ def intersect_rect(ray: Ray, entity: Entity) -> Hit | None:
     local_point = local_origin + local_direction * distance
     if abs(local_point.x) > 1.0 or abs(local_point.z) > 1.0:
         return None  # Toca el plano, pero fuera del cuadrado.
-    return Hit(distance, ray.point_at(distance))
+    return Hit(distance, ray.point_at(distance), _world_normal(inverse_model, glm.vec3(0.0, 1.0, 0.0)))
+
 
 def intersect(ray: Ray, entity: Entity) -> Hit | None:
     """Elige la intersección que corresponde a la forma de la entidad."""
