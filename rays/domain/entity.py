@@ -13,6 +13,7 @@ class Entity:
     transform: Transform = field(default_factory=Transform)
     material: Material = field(default_factory=Material)
     behaviors: list[Behavior] = field(default_factory=list)
+    show_hitbox: bool = False
 
     def update(self, delta_seconds: float) -> None:
         for behavior in self.behaviors:

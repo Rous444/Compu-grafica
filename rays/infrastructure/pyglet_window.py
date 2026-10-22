@@ -3,6 +3,7 @@ import pyglet
 
 from domain.renderer import Renderer
 from domain.scene import Scene
+from pyglet.window import mouse
 
 UPDATES_PER_SECOND = 60.0
 
@@ -12,11 +13,14 @@ class Window(pyglet.window.Window):
         self.gl_context = moderngl.create_context()
         self._scene: Scene | None = None
         self._renderer: Renderer | None = None
+        self._overlay: Renderer | None = None
 
-    def run(self, scene: Scene, renderer: Renderer) -> None:
+        self.on_resize(self.width, self.height)
+
+    def run(self, scene: Scene, renderer: Renderer, overlay: Renderer) -> None:
         self._scene = scene
         self._renderer = renderer
-        self.on_resize(self.width, self.height)
+        self._overlay = overlay
         pyglet.clock.schedule_interval(self._update, 1.0 / UPDATES_PER_SECOND)
         pyglet.app.run()
 
@@ -26,6 +30,7 @@ class Window(pyglet.window.Window):
     def on_draw(self) -> None:
         if self._renderer is not None:
             self._renderer.render(self._scene)
+            self._overlay.render(self._scene)
 
     def on_resize(self, width: int, height: int) -> None:
         if self._renderer is None:
@@ -33,3 +38,15 @@ class Window(pyglet.window.Window):
         framebuffer_width, framebuffer_height = self.get_framebuffer_size()
         self._scene.camera.resize(framebuffer_width, framebuffer_height)
         self._renderer.resize(framebuffer_width, framebuffer_height)
+    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
+        if button != mouse.LEFT:
+            return
+        # Pyglet mide el mouse en píxeles desde la esquina inferior izquierda, igual que la v de la cámara.
+        ray = self._scene.camera.ray_through(x / self.width, y / self.height)
+        found = self._scene.pick(ray)
+        if found is None:
+            print("Nada bajo el cursor")
+            return
+        entity, hit = found
+        entity.show_hitbox = not entity.show_hitbox
+        print(f"Hit: {entity.name} a {hit.distance:.2f} unidades")

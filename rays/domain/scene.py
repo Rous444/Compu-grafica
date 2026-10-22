@@ -5,6 +5,8 @@ from pyglm import glm
 from domain.camera import Camera
 from domain.entity import Entity
 from domain.lighting import DirectionalLight
+from domain.intersections import Hit, closest_hit
+from domain.ray import Ray
 
 
 @dataclass
@@ -23,3 +25,5 @@ class Scene:
     def update(self, delta_seconds: float) -> None:
         for entity in self.entities:
             entity.update(delta_seconds)
+    def pick(self, ray: Ray) -> tuple[Entity, Hit] | None:
+        return closest_hit(ray, self.entities)
