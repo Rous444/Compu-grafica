@@ -26,13 +26,13 @@ def build_scene(aspect_ratio: float) -> Scene:
         name="BlueCube",
         shape=Box(),
         transform=Transform(position=glm.vec3(2, 0, 0), scale=glm.vec3(1.0, 0.5, 1.0)),
-        material=Material.from_rgb255(40, 90, 220, base_color_map=f"{TEXTURES}/panel_base.png", normal_map=f"{TEXTURES}/panel_normal.png", shininess=64.0),
+        material=Material.from_rgb255(40, 90, 220, base_color_map=f"{TEXTURES}/panel_base.png", normal_map=f"{TEXTURES}/panel_normal.png", shininess=64.0, reflectivity=0.35),
         behaviors=[Oscillate(axis=glm.vec3(0, 1, 0), amplitude=1.0, frequency_hz=0.25)],
     ))
     scene.add(Entity(
         name="Floor",
         shape=Rect(),
         transform=Transform(position=glm.vec3(0, -2, 0), scale=glm.vec3(8, 1, 8)),
-        material=Material.from_rgb255(200, 200, 200, base_color_map=f"{TEXTURES}/tiles_base.png", normal_map=f"{TEXTURES}/tiles_normal.png", uv_scale=4.0, shininess=48.0),
+        material=Material.from_rgb255(200, 200, 200, base_color_map=f"{TEXTURES}/tiles_base.png", normal_map=f"{TEXTURES}/tiles_normal.png", uv_scale=4.0, shininess=48.0, reflectivity=0.2),
     ))
     return scene

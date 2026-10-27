@@ -24,6 +24,11 @@ class Camera:
     def resize(self, width: int, height: int) -> None:
         if height > 0:
             self.aspect_ratio = width / height
+    
+    def tan_half_fov(self) -> float:
+            """Mitad de la altura que ve la cámara en un plano a distancia 1."""
+            return math.tan(glm.radians(self.vertical_fov_degrees) / 2.0)
+    
     def ray_through(self, u: float, v: float) -> Ray:
         """Rayo que sale de la cámara y pasa por el punto (u, v) de la pantalla.
 
@@ -34,7 +39,7 @@ class Camera:
         ndc_y = 2.0 * v - 1.0
         # 2. Ajuste por la apertura de la cámara. El FOV es vertical, así que el aspect ratio
         #    solo estira el eje X.
-        tan_half_fov = math.tan(glm.radians(self.vertical_fov_degrees) / 2.0)
+        tan_half_fov = self.tan_half_fov()
         x_camera = ndc_x * tan_half_fov * self.aspect_ratio
         y_camera = ndc_y * tan_half_fov
         # 3. Dirección en el espacio de la cámara, que mira hacia -Z. w = 0 porque es una dirección.
@@ -42,4 +47,6 @@ class Camera:
         # 4. Del espacio de la cámara al mundo, con la inversa de la matriz de vista.
         direction_world = glm.vec3(glm.inverse(self.view_matrix()) * direction_camera)
         return Ray(self.position, direction_world)
+
+    
     

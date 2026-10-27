@@ -6,14 +6,32 @@ from domain.scene import Scene
 from pyglet.window import mouse
 
 UPDATES_PER_SECOND = 60.0
+OPENGL_VERSIONS = ((4, 3), (4, 1), (3, 3))
+
+
+def _best_config() -> pyglet.gl.Config | None:
+    """Pide OpenGL 4.3 (compute shaders). macOS llega hasta 4.1, así que probamos versiones menores."""
+    # En pyglet 2.1 el módulo se llama display; en versiones anteriores, canvas.
+    display_module = getattr(pyglet, "display", None) or pyglet.canvas
+    screen = display_module.get_display().get_default_screen()
+    for major, minor in OPENGL_VERSIONS:
+        config = pyglet.gl.Config(major_version=major, minor_version=minor, forward_compatible=True,
+                                  depth_size=24, double_buffer=True)
+        try:
+            screen.get_best_config(config)
+            return config
+        except pyglet.window.NoSuchConfigException:
+            continue
+    return None
 
 class Window(pyglet.window.Window):
     def __init__(self, width: int, height: int, title: str) -> None:
-        super().__init__(width, height, title, resizable=True)
-        self.gl_context = moderngl.create_context()
+        super().__init__(width, height, title, resizable=True, config=_best_config())
         self._scene: Scene | None = None
         self._renderer: Renderer | None = None
         self._overlay: Renderer | None = None
+        self.gl_context = moderngl.create_context()
+        print(f"OpenGL {self.gl_context.version_code}: {self.gl_context.info['GL_RENDERER']}")
 
     def run(self, scene: Scene, renderer: Renderer, overlay: Renderer) -> None:
         self._scene = scene

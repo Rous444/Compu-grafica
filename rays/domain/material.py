@@ -10,6 +10,7 @@ class Material:
     normal_map: str | None = None
     uv_scale: float = 1.0
     shininess: float = 32.0
+    reflectivity: float = 0.0
 
     @classmethod
     def from_rgb255(cls, red: int, green: int, blue: int, **properties) -> "Material":
