@@ -7,12 +7,12 @@ from infrastructure.opengl.texture_library import TextureLibrary
 from infrastructure.pyglet_window import Window
 from domain.scene import Scene
 from infrastructure.opengl.gpu_raytrace_renderer import ComputeRaytraceRenderer, FragmentRaytraceRenderer
+from infrastructure.opengl.pathtrace_renderer import ComputePathtraceRenderer, FragmentPathtraceRenderer
 
-SCENE_TYPE = "gpu"  # "raster", "cpu" o "gpu"
+SCENE_TYPE = "pathtracing"  # "raster", "cpu", "gpu" o "pathtracing"
 COMPUTE_SHADER_VERSION = 430
 
 WIDTH, HEIGHT = 800, 600
-#SCENE_TYPE = "raster"  # "raster" o "cpu"
 
 def create_gpu_renderer(window: Window, scene: Scene) -> Renderer:
     """Compute shader si la placa lo soporta (OpenGL 4.3); si no, fragment shader (macOS)."""
@@ -23,7 +23,17 @@ def create_gpu_renderer(window: Window, scene: Scene) -> Renderer:
     print(f"OpenGL {context.version_code} no tiene compute shaders: usamos el fragment shader.")
     return FragmentRaytraceRenderer(context, textures, scene)
 
+def create_pathtrace_renderer(window: Window, scene: Scene) -> Renderer:
+    context = window.gl_context
+    textures = TextureLibrary(context)
+    if context.version_code >= COMPUTE_SHADER_VERSION:
+        return ComputePathtraceRenderer(context, textures, scene)
+    print(f"OpenGL {context.version_code} no tiene compute shaders: usamos el fragment shader.")
+    return FragmentPathtraceRenderer(context, textures, scene)
+
 def create_renderer(window: Window, scene: Scene) -> Renderer:
+    if SCENE_TYPE == "pathtracing":
+        return create_pathtrace_renderer(window, scene)
     if SCENE_TYPE == "gpu":
         return create_gpu_renderer(window, scene)
     if SCENE_TYPE == "cpu":

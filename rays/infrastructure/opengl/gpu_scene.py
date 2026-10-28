@@ -25,6 +25,7 @@ class GpuScene:
         self._texture_array, self._layer_of = textures.texture_array(paths)
         self.objects_buffer = context.buffer(reserve=OBJECT_SIZE * MAX_OBJECTS)
         self._object_count = 0
+        self.last_upload = b""
 
     def apply(self, program: ShaderProgram, scene: Scene, aspect_ratio: float) -> None:
         camera = scene.camera
@@ -59,7 +60,8 @@ class GpuScene:
     def upload(self, scene: Scene) -> None:
         """Escribe en el buffer los datos actuales de cada entidad (se mueven en cada frame)."""
         entities = scene.entities[:MAX_OBJECTS]
-        self.objects_buffer.write(b"".join(self._pack(entity) for entity in entities))
+        self.last_upload = b"".join(self._pack(entity) for entity in entities)
+        self.objects_buffer.write(self.last_upload)
         self._object_count = len(entities)
 
     def _pack(self, entity: Entity) -> bytes:

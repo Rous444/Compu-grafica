@@ -12,6 +12,7 @@ from domain.ray import Ray
 @dataclass
 class Scene:
     camera: Camera
+    paused: bool = False
     background_color: glm.vec3 = field(default_factory=lambda: glm.vec3(0.2, 0.2, 0.2))
     entities: list[Entity] = field(default_factory=list)
     light: DirectionalLight = field(default_factory=DirectionalLight)
@@ -24,7 +25,10 @@ class Scene:
         return entity
 
     def update(self, delta_seconds: float) -> None:
+        if self.paused:
+            return
         for entity in self.entities:
             entity.update(delta_seconds)
+
     def pick(self, ray: Ray) -> tuple[Entity, Hit] | None:
         return closest_hit(ray, self.entities)
